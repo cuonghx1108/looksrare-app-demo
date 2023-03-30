@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { HamburgerIcon, CloseIcon, UnlockIcon, LockIcon } from '@chakra-ui/icons';
 
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { useAccount, useConnect, useDisconnect, useNetwork } from 'wagmi'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 
 const Links = [{ href: "/sell", title: "Sell"}, { href: "/explore", title: "Explore"}];
@@ -37,12 +37,14 @@ const ConnectWallet = () => {
     connector: new InjectedConnector(),
   })
   const { disconnect } = useDisconnect()
+  const { chain } = useNetwork()
 
   if (isConnected)
     return (
       <>
-      <Stack direction='row' marginRight={3}>
-        <Badge >{`0x...${address.substring(address.length - 10, address.length)}`}</Badge>
+        <Stack direction='row' marginRight={3}>
+          <Badge >{chain.name}</Badge>
+          <Badge >{`0x...${address.substring(address.length - 10, address.length)}`}</Badge>
         </Stack>
         <Button
           variant={'solid'}
@@ -70,6 +72,7 @@ const ConnectWallet = () => {
 
 export default function Layout({ children }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isConnected } = useAccount()
 
   return (
     <>
@@ -108,8 +111,8 @@ export default function Layout({ children }) {
           </Box>
         ) : null}
       </Box>
-
-      <Box p={4}>{children}</Box>
+        
+      {isConnected ? <Box p={4}>{children}</Box> : "Unauthorized"}
     </>
   );
 }
