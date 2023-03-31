@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     const db = client.db("nft-marketplaces");
 
     const nonce = await db.collection("nonces").findOne({ address })
-    res.json(nonce || 0)
+    res.json(nonce.nonce || 0)
   } catch (error) {
     console.error(error)
   }

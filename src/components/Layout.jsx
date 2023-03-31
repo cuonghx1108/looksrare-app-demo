@@ -92,7 +92,7 @@ export default function Layout({ children }) {
               spacing={4}
               display={{ base: 'none', md: 'flex' }}>
               {Links.map((link) => (
-                <NavLink key={link} href={link.href} >{link.title}</NavLink>
+                <NavLink key={link.title} href={link.href} >{link.title}</NavLink>
               ))}
             </HStack>
           </HStack>
@@ -105,7 +105,7 @@ export default function Layout({ children }) {
           <Box pb={4} display={{ md: 'none' }}>
             <Stack as={'nav'} spacing={4}>
               {Links.map((link) => (
-                <NavLink key={link}>{link}</NavLink>
+                <NavLink key={link.title} href={link.href}>{link.title}</NavLink>
               ))}
             </Stack>
           </Box>
