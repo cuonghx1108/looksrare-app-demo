@@ -11,6 +11,7 @@ import { ethers } from 'ethers';
 import exchangeAbi from "../../abi/exchange";
 import { useAccount, useNetwork, useSigner } from 'wagmi';
 import { useState } from 'react';
+import NFTViewer from '@/components/NFTViewer';
 
 export default function Explore() {
   const fetcher = (...args) => fetch(...args).then(res => res.json())
@@ -58,9 +59,16 @@ export default function Explore() {
     <SimpleGrid columns={3} spacing={10}>
       {orders.map((order) => {
         return <Box key={order._id} bg="#ecf0f1" padding={3} borderRadius="5px">
-          <Text>Collection: {order.collection}</Text>
+            <SimpleGrid columns={2} spacing={10}>
+      <Box>
+      <Text>Collection: {order.collection}</Text>
           <Text>TokenId: {order.tokenId}</Text>
-          
+    </Box>
+      <Box>          <NFTViewer nft={{ collection: order.collection, tokenId: order.tokenId }}/>
+</Box>
+
+</SimpleGrid>
+
           <Button colorScheme='teal'onClick={() => buy(order)} isLoading={loading[order._id]}>Buy</Button>
         </Box>
       })}

@@ -8,7 +8,8 @@ import { Button, Wrap, WrapItem, Box,   FormErrorMessage,
   FormControl,
   Input,
   useToast,
-  Text, } from '@chakra-ui/react';
+  Text,
+  SimpleGrid, } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form'
 import { erc721ABI, useAccount, useContract, useNetwork, useProvider, useSigner } from 'wagmi';
 import { ethers } from 'ethers';
@@ -17,6 +18,7 @@ import { addressesByNetwork, signMakerOrder } from '@cuonghx.gu-tech/looksrare-s
 import useSWR from 'swr'
 import orderValidatorAbi from "../../abi/order-validator"
 import useSWRMutation from 'swr/mutation'
+import NFTViewer from '@/components/NFTViewer';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -123,16 +125,23 @@ const ApproveNFT = ({ nextStep, prevStep, nft }) => {
   }
 
   return <Box>
-    <Box>
+    <SimpleGrid columns={2} spacing={10}>
+      <Box>
+      <Box>
       <Text>Collection: {nft.collection}</Text>
       <Text>TokenId: {nft.tokenId}</Text>
+      </Box>
+      <Button mt={4} colorScheme='teal' onClick={approve} isLoading={loading}>
+        Approve
+      </Button>
+      <Button mt={4} onClick={prevStep}>
+        Previous
+      </Button>
     </Box>
-    <Button mt={4} colorScheme='teal' onClick={approve} isLoading={loading}>
-      Approve
-    </Button>
-    <Button mt={4} onClick={prevStep}>
-      Previous
-    </Button>
+      <Box><NFTViewer nft={nft} /></Box>
+
+</SimpleGrid>
+
   </Box>
 }
 
