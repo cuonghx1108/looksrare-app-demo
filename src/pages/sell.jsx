@@ -13,7 +13,10 @@ import { useForm } from 'react-hook-form'
 import { erc721ABI, useAccount, useContract, useNetwork, useProvider, useSigner } from 'wagmi';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { addressesByNetwork } from '@cuonghx.gu-tech/looksrare-sdk';
+import { addressesByNetwork, signMakerOrder } from '@cuonghx.gu-tech/looksrare-sdk';
+import useSWR from 'swr'
+import orderValidatorAbi from "../../abi/order-validator"
+import useSWRMutation from 'swr/mutation'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -134,8 +137,21 @@ const ApproveNFT = ({ nextStep, prevStep, nft }) => {
 }
 
 const SellNFT = ({ reset, nft }) => {
+  const fetcher = (...args) => fetch(...args).then(res => res.json())
+  async function sendRequest(url, { arg }) {
+    return fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(arg)
+    }).then(res => res.json())
+  }
+
+  const toast = useToast()
   const { address } = useAccount();
   const { chain } = useNetwork()
+  const { data: nonce } = useSWR(`/api/nonces/${address}`, fetcher)
+  const provider = useProvider();
+  const { data: signer } = useSigner()
+  const { trigger, isMutating } = useSWRMutation('/api/orders', sendRequest)
 
   const addresses = addressesByNetwork[chain.id];
   const now = Math.floor(Date.now() / 1000);
@@ -145,28 +161,48 @@ const SellNFT = ({ reset, nft }) => {
     register,
     formState: { errors, isSubmitting },
   } = useForm()
-  
-  const onSubmit = async () => {
+
+  const onSubmit = async (values) => {
     try {
+
 
       const makerOrder = {
         isOrderAsk: true,
         signer: address,
         collection: nft.collection,
-        // price: "1000000000000000", 
+        price: values.price, 
         tokenId: nft.tokenId,
         amount: "1",
         strategy: addresses.STRATEGY_STANDARD_SALE_DEPRECATED,
         currency: addresses.WETH,
-        // nonce: nonce, 
+        nonce: nonce, 
         startTime: now,
         endTime: now + 86400,
         minPercentageToAsk: 0,
         params: [],
       };
 
+      // sign
+      const signatureHash = await signMakerOrder(signer, chain.id, makerOrder);
+      const { v,r,s } = ethers.utils.splitSignature(signatureHash);
+      const order = { ...makerOrder, v, r, s}
+    
+      // check order
+      const orderValidatorV1 = new ethers.Contract(addresses.ORDER_VALIDATOR_V1, orderValidatorAbi, provider);
+      const valids = await orderValidatorV1.checkOrderValidity(order)
+
+      if (!valids.every(s => s.toNumber() === 0)) {
+        throw valids
+      }
+      // call api
+      await trigger(order);
+      toast({
+        title: "Success",
+        status: "success"
+      })
+
     } catch (error) {
-      setLoading(false)
+      console.error(error)
       toast({
         title: "User is denied",
         status: "error"
@@ -179,6 +215,8 @@ const SellNFT = ({ reset, nft }) => {
   <Box>
     <Text>Collection: {nft.collection}</Text>
     <Text>TokenId: {nft.tokenId}</Text>
+    <Text>Nonce: {nonce}</Text>
+  
     </Box>
     <form onSubmit={handleSubmit(onSubmit)}>
       <FormControl isInvalid={errors.price}>
@@ -194,7 +232,7 @@ const SellNFT = ({ reset, nft }) => {
           {errors.price && errors.price.message}
         </FormErrorMessage>
       </FormControl>
-      <Button mt={4} colorScheme='teal' type='submit' oisLoading={isSubmitting}>
+      <Button mt={4} colorScheme='teal' type='submit' isLoading={isSubmitting}>
         Sell
       </Button>
     </form>
