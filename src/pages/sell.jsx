@@ -9,16 +9,17 @@ import { Button, Wrap, WrapItem, Box,   FormErrorMessage,
   Input,
   useToast,
   Text,
-  SimpleGrid, } from '@chakra-ui/react';
-import { useForm } from 'react-hook-form'
+  SimpleGrid } from '@chakra-ui/react';
+import { useForm, Controller } from 'react-hook-form'
 import { erc721ABI, useAccount, useContract, useNetwork, useProvider, useSigner } from 'wagmi';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { addressesByNetwork, signMakerOrder } from '@cuonghx.gu-tech/looksrare-sdk';
+import { addressesByNetwork, CHAIN_INFO, signMakerOrder } from '@cuonghx.gu-tech/looksrare-sdk';
 import useSWR from 'swr'
 import orderValidatorAbi from "../../abi/order-validator"
 import useSWRMutation from 'swr/mutation'
 import NFTViewer from '@/components/NFTViewer';
+import { Select } from "chakra-react-select";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -169,11 +170,26 @@ const SellNFT = ({ reset, nft }) => {
     handleSubmit,
     register,
     formState: { errors, isSubmitting },
+    control
   } = useForm()
+
+  const currecies = [
+    {
+      label: "ETH",
+      value: ethers.constants.AddressZero
+    },
+    {
+      label: "WETH",
+      value: addresses.WETH
+    },
+    {
+      label: "USDT",
+      value: process.env.NEXT_PUBLIC_USDT
+    }
+  ];
 
   const onSubmit = async (values) => {
     try {
-
 
       const makerOrder = {
         isOrderAsk: true,
@@ -183,7 +199,7 @@ const SellNFT = ({ reset, nft }) => {
         tokenId: nft.tokenId,
         amount: "1",
         strategy: addresses.STRATEGY_STANDARD_SALE_DEPRECATED,
-        currency: addresses.WETH,
+        currency: values.currency.value === ethers.constants.AddressZero ? addresses.WETH.value : values.currency.value,
         nonce: nonce, 
         startTime: now,
         endTime: now + 86400,
@@ -199,7 +215,6 @@ const SellNFT = ({ reset, nft }) => {
       // check order
       const orderValidatorV1 = new ethers.Contract(addresses.ORDER_VALIDATOR_V1, orderValidatorAbi, provider);
       const valids = await orderValidatorV1.checkOrderValidity(order)
-
       if (!valids.every(s => s.toNumber() === 0)) {
         throw valids
       }
@@ -241,6 +256,32 @@ const SellNFT = ({ reset, nft }) => {
           {errors.price && errors.price.message}
         </FormErrorMessage>
       </FormControl>
+            <Controller
+        control={control}
+        name="currency"
+        rules={{ required: "Please enter at least one currency group." }}
+        render={({
+          field: { onChange, onBlur, value, name, ref },
+          fieldState: { error }
+        }) => (
+          <FormControl py={4} isInvalid={!!error} id="currency">
+            <FormLabel>Currency</FormLabel>
+
+            <Select
+              name={name}
+              ref={ref}
+              onChange={onChange}
+              onBlur={onBlur}
+              value={value}
+              options={currecies}
+              placeholder="Currency"
+              closeMenuOnSelect={false}
+            />
+
+            <FormErrorMessage>{error && error.message}</FormErrorMessage>
+          </FormControl>
+        )}
+      />
       <Button mt={4} colorScheme='teal' type='submit' isLoading={isSubmitting}>
         Sell
       </Button>

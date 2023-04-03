@@ -9,7 +9,7 @@ import useSWR from 'swr'
 import { addressesByNetwork } from '@cuonghx.gu-tech/looksrare-sdk';
 import { ethers } from 'ethers';
 import exchangeAbi from "../../abi/exchange";
-import { useAccount, useNetwork, useSigner } from 'wagmi';
+import { erc20ABI, useAccount, useNetwork, useSigner } from 'wagmi';
 import { useState } from 'react';
 import NFTViewer from '@/components/NFTViewer';
 
@@ -37,8 +37,17 @@ export default function Explore() {
       const addresses = addressesByNetwork[chain.id];
       const looksRareExchange = new ethers.Contract(addresses.EXCHANGE, exchangeAbi, signer)
 
-      const tx = await looksRareExchange.matchAskWithTakerBidUsingETHAndWETH(takerBidOrder, makerAskOrder, { value: takerBidOrder.price });
-      await tx.wait()
+      if (makerAskOrder.currency === addresses.WETH) {
+        const tx = await looksRareExchange.matchAskWithTakerBidUsingETHAndWETH(takerBidOrder, makerAskOrder, { value: takerBidOrder.price });
+        await tx.wait()
+      } else if (makerAskOrder.currency === process.env.NEXT_PUBLIC_USDT) {
+        const erc20 = new ethers.Contract(makerAskOrder.currency, erc20ABI, signer)
+        const tx1 = await erc20.approve(looksRareExchange.address, ethers.constants.MaxUint256)
+        await tx1.wait()
+        const tx = await looksRareExchange.matchAskWithTakerBid(takerBidOrder, makerAskOrder);
+        await tx.wait()
+      }
+
 
       toast({
         title: "Success",
@@ -62,7 +71,8 @@ export default function Explore() {
             <SimpleGrid columns={2} spacing={10}>
       <Box>
       <Text>Collection: {order.collection}</Text>
-          <Text>TokenId: {order.tokenId}</Text>
+              <Text>TokenId: {order.tokenId}</Text>
+              <Text>Price: {order.price}</Text>
     </Box>
       <Box>          <NFTViewer nft={{ collection: order.collection, tokenId: order.tokenId }}/>
 </Box>

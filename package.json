@@ -14,6 +14,7 @@
     "@cuonghx.gu-tech/looksrare-sdk": "^0.9.0",
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
+    "chakra-react-select": "^4.6.0",
     "chakra-ui-steps": "^2.1.0",
     "eslint": "8.37.0",
     "eslint-config-next": "13.2.4",
